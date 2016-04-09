@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hi DO</title>
+    <meta name="description" content="yap. websockets.">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.0.17/css/bulma.min.css"/>
+ <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.3/jquery.min.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <section class="hero">
+        <div class="hero-content">
+          <div class="container">
+            <h1 class="title">
+              webscanner
+            </h1>
+            <h2 class="subtitle">
+              (just an excuse to use <a href="http://bulma.io">bulma</a>)
+            </h2>
+          </div>
+        </div>
+      </section>
+
+      <br/>
+      <div class="columns">
+        <div class="column is-third is-offset-quarter">
+          <p class="control has-addons">
+            <input id="ip" class="input" type="text" placeholder="Enter ipv4 or ipv6 address">
+            <a class="button is-info" id="scan">
+              Search
+            </a>
+          </p>
+        </div>
+      </div>
+      <br/>
+      <div id="log">
+      </div>
+
+    </div>
+    <script>
+var scanButton = $("#scan");
+var log = $("#log");
+
+function enableScan() {
+  scanButton.removeClass('is-loading');
+  scanButton.prop('disabled', false);
+}
+
+function disableScan() {
+  scanButton.addClass('is-loading');
+  scanButton.prop('disabled', true);
+}
+
+function clearLog() {
+  log.html('');
+}
+
+function appendLog(tag, txt) {
+  var span = $("<span/>").addClass("tag is-" + tag).text(txt);
+  var p = $("<p/>").addClass('control');
+  span.appendTo(p);
+  p.appendTo(log);
+}
+
+function appendOpen(evt) {
+  console.log(evt.endpoint + ' is open');
+  appendLog('primary', evt.endpoint + " (" + evt.port_name + ")");
+}
+
+function appendClosed(evt) {
+  console.log(evt.endpoint + ' is closed');
+  appendLog('danger', evt.endpoint + " (" + evt.port_name + ")");
+}
+
+function appendNotice(txt) {
+  appendLog('warning', txt);
+}
+
+function startScan() {
+  disableScan();
+  clearLog();
+
+  var ip = $('#ip').val();
+  var query = $.param({'ip': ip, 'start': 1, 'end': 65535});
+  conn = new WebSocket('ws://' + location.host + '/scan?' + query);
+
+  conn.onclose = function(evt) {
+    appendNotice('Scan complete');
+    enableScan();
+  };
+
+  conn.onmessage = function(evtRaw) {
+    var event = JSON.parse(evtRaw.data);
+    if (event.open) {
+      appendOpen(event);
+    }
+  };
+
+  conn.onopen = function() {
+    appendNotice('Here we go, scanning ' + ip);
+  };
+};
+
+$("#ip").keypress(function(e) {
+    if (e.which == 13) {
+      startScan();
+    }
+});
+$("#scan").click(startScan);
+    </script>
+  </body>
+</html>
